@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Call Assistant</title>
+<style>
+:root{--bg:#eef1f6;--card:#fff;--tx:#18202b;--mu:#667085;--bd:#e2e7ef;--ac:#3b5bdb;--ac2:#edf1ff;--ok:#2f9e63;--warn:#e8590c;color-scheme:light}
+@media (prefers-color-scheme:dark){:root{--bg:#0f1319;--card:#181e27;--tx:#e9edf3;--mu:#9aa5b5;--bd:#273040;--ac:#7c96ff;--ac2:#202a4a;--ok:#4fd18b;--warn:#ff9150;color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.top{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 22px;background:var(--card);border-bottom:1px solid var(--bd)}
+.brand{display:flex;gap:12px;align-items:center}.logo{font-size:26px}
+.brand b{display:block;font-size:17px}.brand small{color:var(--mu)}
+.status{display:flex;align-items:center;gap:8px;padding:6px 14px;border-radius:99px;background:var(--bg);color:var(--mu);font-weight:600;font-size:13px}
+.status i{width:9px;height:9px;border-radius:50%;background:var(--mu)}
+.status.on{color:var(--ok)}.status.on i{background:var(--ok);animation:p 1.4s infinite}
+@keyframes p{50%{opacity:.25}}
+.prog{height:5px;background:var(--bd)}#pb{height:100%;width:0;background:var(--ok);transition:width .4s}
+main{display:grid;grid-template-columns:1.1fr .9fr;gap:16px;padding:18px 22px;max-width:1150px;margin:0 auto}
+@media(max-width:820px){main{grid-template-columns:1fr}}
+.col{display:flex;flex-direction:column;gap:16px;min-width:0}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:16px;padding:18px;box-shadow:0 1px 3px rgba(16,24,40,.05)}
+h2{margin:0 0 12px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--mu)}
+.hero{background:var(--ac2);border-color:var(--ac)}
+#lbl{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ac)}
+#big{font-size:26px;font-weight:700;line-height:1.25;margin:6px 0}
+#sub{color:var(--mu);min-height:22px}
+.ctl{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+button{font:inherit;font-weight:600;padding:10px 16px;border-radius:10px;border:1px solid var(--bd);background:var(--card);color:var(--tx);cursor:pointer}
+button:hover{border-color:var(--ac)}
+button.pri{background:var(--ac);border-color:var(--ac);color:#fff}
+button.rec{background:#d9363e;border-color:#d9363e;color:#fff}
+ol{list-style:none;margin:0;padding:0;max-height:380px;overflow-y:auto;position:relative}
+li{display:flex;gap:12px;align-items:flex-start;padding:9px 6px;border-bottom:1px solid var(--bd);color:var(--mu)}
+li:last-child{border:0}
+li .n{flex:none;width:26px;height:26px;border-radius:50%;border:2px solid var(--bd);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700}
+li.done{color:var(--tx);opacity:.65}li.done .n{background:var(--ok);border-color:var(--ok);color:#fff}
+li.cur{color:var(--tx);font-weight:700;background:var(--ac2);border-radius:10px}li.cur .n{border-color:var(--ac);color:var(--ac)}
+#tr{height:360px;overflow-y:auto;white-space:pre-wrap;background:var(--bg);border-radius:10px;padding:12px}
+#tr .i{color:var(--mu)}
+#msg{color:var(--warn);margin:10px 0 0;min-height:20px;font-size:13px}
+#pop{position:fixed;top:12px;left:50%;transform:translate(-50%,-170%);width:min(680px,94vw);background:#1a2a6c;color:#fff;border-radius:14px;padding:14px 18px;box-shadow:0 10px 34px rgba(0,0,0,.4);z-index:50;transition:transform .25s}
+#pop.show{transform:translate(-50%,0)}#pop .pd{opacity:.8;font-size:13px}#pop .pn{font-size:21px;font-weight:700}
+.seg{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}.seg button{padding:7px 12px;font-size:13px}.seg .on{background:var(--ac);border-color:var(--ac);color:#fff}button:disabled{opacity:.55;cursor:not-allowed}
+.pick{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:6px}.pick .pl{flex-basis:100%;font-weight:700}.pick button{flex:1;min-width:200px;padding:18px 14px;font-size:16px}
+</style>
+</head>
+<body>
+<div id="pop" role="status" aria-live="polite"></div>
+<header class="top">
+  <div class="brand"><span class="logo">🎧</span><div><b>Call Assistant</b><small>Follow the script, step by step</small></div></div>
+  <div class="status" id="st"><i></i><span id="stt">Not listening</span></div>
+</header>
+<div class="prog"><div id="pb"></div></div>
+<main>
+  <div class="col">
+    <section class="card hero">
+      <div class="pick" id="pick"><div class="pl">Call coming in? Choose the script to start listening:</div><button class="pri" data-s="loan">📞 Loan lead call</button><button class="pri" data-s="ds">📞 DS lead call (direct mail)</button></div>
+      <div class="seg" id="seg"><button data-s="loan">Loan lead</button><button data-s="ds">DS lead (direct mail)</button></div>
+      <div id="lbl"></div><div id="big"></div><div id="sub"></div>
+      <div class="ctl"><button id="go" class="pri">Start listening</button><button id="pip">Pop out</button><button id="nw">New call</button></div>
+    </section>
+    <section class="card"><h2>Script</h2><ol id="steps"></ol></section>
+  </div>
+  <div class="col">
+    <section class="card"><h2>Live transcript</h2><div id="tr"></div>
+      <div class="ctl"><button id="dl">Save transcript</button></div><p id="msg"></p></section>
+  </div>
+</main>
+<script>
+const $=s=>document.querySelector(s);
+const LOAN_STEPS=[
+"Opening: introduce yourself with Level and confirm the loan amount they requested",
+"Explain the soft pull (doesn’t affect credit, used for pre-qualification), verify their information, and get permission to proceed",
+"While it pulls: ask what the loan is for, to build rapport and hardship",
+"Review the credit summary: score, utilization, installment loans, high balances, lates, payday loans",
+"Go over every creditor, the total balances, and the available limits",
+"Cover their total monthly payments; if they aren’t making them, assure them they are still due and accruing",
+"Mandatory red pill: are you aware you’re losing ___ per month and ___ per year in interest? How does that make you feel?",
+"Place on a 3–5 minute hold for underwriting and ask them to get something to write with",
+"While on hold: check state (Level or Pinnacle), enrollment guidelines, creditor matrix, Amex & Discover, and work the T-chart. When back: their credit is under distress, but we have another product",
+"T-chart: have them draw a large T, write total debt on top, and fill in the left side (current payment, interest per month, term)",
+"Ask “you don’t want to continue this situation, right?” then fill in the right side (new payment, savings per month, term, total savings)",
+"Recap: savings per month and per year, years sooner debt free, total savings, and what they’ll use the savings for",
+"Ask which side of the paper makes more sense for their family; mention a loan may be possible after 6–12 months of on-time payments",
+"Send the trust text and confirm they received it",
+"Cover how payments work: ask if they’re paid bi-weekly, when they’re paid next, and the payment amount each pay period",
+"Confirm the budget and ask if they have savings to use for the $299 enrollment fee",
+"Collect banking information (ABA routing number if they don’t have it)",
+"Prepare contracts: explain the benefits package (legal protection, financial success advisor, free wills, credit monitoring) and the one-time $299 setup fee",
+"Collect the $299: preferred method is a card with room (expiration, CVV, billing address); otherwise draft the bank account 3 days after enrollment, or a date within 10 days",
+"Finish contracts: advisor from Level Coaching reaches out within two weeks; ask them to check their email for the documents",
+"Send both sets of docs and have them sign both sets",
+"Get a rep for compliance and connect to the compliance call",
+"Ask for a review or referral"];
+const LOAN_KEYS=[
+/with level|requested a loan|just requested|loan from us/,
+/soft pull|does not affect|doesn.?t affect|pre-?qualif|permission to proceed|verify (your )?information/,
+/what (is|was|are) (the loan|you).*(for|need|looking)|loan (is )?for|what.*(using|use|need).*(loan|money|funds)/,
+/credit score|your score|utilization|balances.*(high|gotten)|payday|\blates?\b|installment|credit (summary|profile|report)/,
+/creditors?|tradelines?|total balance|available (limit|credit)|\blimit\b/,
+/monthly payments?|total payments?|still due|accru|minimum payments?/,
+/are you aware|losing|per year|in interest|make you feel/,
+/underwrit|\bhold\b|something to write|three to five|3 to 5/,
+/distress|another product|not approved|traditional loan|beneficial for you/,
+/draw a (large |big )?t\b|t[- ]?chart|total debt amount|write (down )?your total debt/,
+/don.?t want to continue|new payment|cash savings|total savings|total repayment/,
+/we save|years sooner|debt free|use the savings|per month.*per year/,
+/which side|what side|makes more sense|six to twelve|6 to 12|on.?time payments|loan funding/,
+/did you get the text|trust text|text i just sent|level-profile|received the text/,
+/bi-?weekly|get paid|pay period|next pay|payment date/,
+/budget|savings|required items|\b299\b|enrollment fee/,
+/banking information|routing number|account number|\baba\b|bank account/,
+/benefits package|legal protection|financial success|free wills|credit monitoring|setup and initiation|one.?time/,
+/cvv|expiration|credit card|billing address|draft|authorize level|ten days|10 days/,
+/level coaching|first two weeks|two weeks|check your email|documents/,
+/both sets|\bsign\b|docusign|e-?sign/,
+/compliance|\brep\b/,
+/review|referral|\brefer\b|feedback/];
+const DS_STEPS=[
+"Opening: say you’re with the credit negotiations department on a recorded line and ask how you can help",
+"Get the notice or reference number (don’t answer any questions until you have it)",
+"Confirm you have the letter under the client’s name and address, and that it’s correct",
+"Say who we are (Level Debt), that we work with the creditors on the letter, reduce debt by up to 50% with one lower fixed payment, and ask if that would help",
+"Quick questions: estimated total credit card and personal loan debt, and any co-client (no price quotes)",
+"Ask if they’re current on monthly payments, and whether they pay the minimum or a little more",
+"Send the text or email with your direct line and the Level Debt link",
+"Cover the trust email section by section: mission, reviews, BBB rating, 18-year A+ history, ACDR and IAPDA",
+"Get the DOB and any missing application fields (full address, cell, email), then move to Spinwheel",
+"Get permission to pull credit: it won’t show as a hard inquiry or hurt their score",
+"Verify every account on the credit report, make sure none are missing, never offer to take accounts out, and ask about co-clients",
+"Mandatory red pill: total debt, the burden, losing ___ per month and ___ per year in interest, were you aware, how does that make you feel",
+"Place on a 3–5 minute hold for underwriting and ask them to get something to write with",
+"Back from hold: thanks for the hold, back from underwriting and it looks even better than I thought",
+"Walk through the four options: DIY, bankruptcy, consolidation loan, and debt resolution",
+"Ask if they’re ready to write down the approval details, then T-chart: draw a large T, total debt on top, and fill in the left side",
+"Ask “you don’t want to continue this situation, right?” then fill in the right side (new payment, savings per month, term, total savings)",
+"Recap: savings per month and per year, years sooner debt free, total savings, and what they’ll use the savings for",
+"Ask which side of the paper makes more sense for them and their family",
+"Cover how payments work: bi-weekly pay, next pay date, and the payment amount each pay period",
+"Confirm the budget and required items",
+"Collect real banking information (ABA routing number if needed). Never enter fake numbers",
+"Explain the optional benefits package (legal protection, financial success advisor, free wills, credit monitoring) and the one-time $299 setup fee",
+"Collect the $299: card with room (expiration, CVV, billing address), otherwise draft the bank account 3 days after enrollment or within 10 days",
+"Finish contracts: advisor from Level Coaching reaches out within two weeks; ask them to check their email for the documents",
+"Send both sets of docs and have them sign both sets",
+"Contract review: list of enrolled creditors, stop paying them directly, they will close, change phone numbers, and set expectations for the first 90 days of creditor calls",
+"Contract review: fee structure (we don’t earn unless we perform; compare apples to apples year to year)",
+"Contract review: questionnaire highlights (credit impact focused on value, litigation, tax implications, accounts settled one at a time, specialist meetings, FORTH account and portal)",
+"Prep for the compliance call: ask if they have any questions before the compliance call",
+"Ask for referrals: friends or family who could benefit; $300 Visa gift card after the referral’s first payment",
+"Ask for a review and text them the review link",
+"Tell them to say “do not contact me on this number anymore” to creditors and to lock their credit profile",
+"Thank them and transfer to the compliance call"];
+const DS_KEYS=[
+/credit negotiations|recorded line|how can i help/,
+/notice|reference number|reference/,
+/letter|is that correct/,
+/level debt|work directly|creditors listed|up to 50|fixed (monthly )?payment|sound like something/,
+/how much.*(debt|credit card|personal loan)|total credit card|co-?client|estimated/,
+/current on (your )?(monthly )?payments|minimum payments?|making the minimum|a little more/,
+/direct line|send you (a|an)|email or a text|a text/,
+/did you receive the email|mission|\bbbb\b|iapda|acdr|reviews|a\+/,
+/date of birth|\bdob\b|birth|spinwheel|full address|cell phone/,
+/permission|hard inquiry|negatively impact|may i proceed/,
+/accounts?|credit report|missing|co-?client/,
+/don.?t know how you.?re doing it|mighty burden|losing|per year|interest alone|were you aware|make you feel/,
+/underwrit|\bhold\b|something to write|3 to 5|three to five/,
+/thanks for the hold|back from underwriting|finishing up|even better/,
+/four (main )?options|do it yourself|\bdiy\b|bankruptcy|consolidation loan|debt resolution|win-win/,
+/draw a (large |big )?t\b|t[- ]?chart|total debt amount|ready to write/,
+/don.?t want to continue|new payment|cash savings|total savings|total repayment/,
+/we save|years sooner|debt free|use the savings|per month.*per year/,
+/which side|what side|makes more sense/,
+/bi-?weekly|get paid|pay period|next pay|payment date/,
+/budget|required items/,
+/banking information|routing number|account number|\baba\b|bank account/,
+/benefits package|legal protection|financial success|free wills|credit monitoring|setup and initiation|one.?time/,
+/cvv|expiration|credit card|billing address|draft|authorize level|ten days|10 days/,
+/level coaching|first two weeks|two weeks|check your email|documents/,
+/both sets|\bsign\b|docusign|e-?sign/,
+/enrolled creditors|stop paying|change (your )?phone number|first 90 days|ninety days|steal/,
+/fee structure|earn unless|apples to apples|perform/,
+/questionnaire|tax (implications|firm)|one at a time|account specialist|forth|portal|litigation|lawsuit/,
+/any (other )?questions|compliance call|before we end/,
+/refer|friends or family|gift card|300/,
+/review|mention my name|text you a link|link right now/,
+/do not contact me|lock(ing)? your credit|credit profile/,
+/transfer you|transfer to compliance|compliance call/];
+// NEED = how many different key points of a step must be heard before moving on
+const LOAN_NEED=[2,2,1,2,2,1,2,2,1,1,2,2,1,1,2,2,1,2,2,2,1,1,1];
+const DS_NEED=[2,1,1,2,2,1,1,3,1,2,2,3,2,1,3,1,2,2,1,2,1,1,2,2,2,1,2,2,2,1,2,2,2,1];
+const SILENCE=2500; // ms of quiet after you stop talking before it decides
+const SCRIPTS={loan:{name:"Loan lead",steps:LOAN_STEPS,keys:LOAN_KEYS,need:LOAN_NEED},ds:{name:"DS lead (direct mail)",steps:DS_STEPS,keys:DS_KEYS,need:DS_NEED}};
+let SKEY="loan",STEPS=SCRIPTS.loan.steps,KEYS=SCRIPTS.loan.keys,NEED=SCRIPTS.loan.need,qt;
+let idx=0,tx="",interim="",since=0,block=false,on=false,rec=null,AC=null,pipW=null,popT;
+const msg=t=>$("#msg").textContent=t||"";
+function draw(){
+  const ol=$("#steps");ol.innerHTML="";
+  STEPS.forEach((s,i)=>{const li=document.createElement("li");li.className=i<idx?"done":i===idx?"cur":"";
+    const n=document.createElement("span");n.className="n";n.textContent=i<idx?"✓":i+1;
+    const t=document.createElement("span");t.textContent=s;li.append(n,t);ol.append(li)});
+  const fin=idx>=STEPS.length;
+  $("#lbl").textContent=fin?"Script complete":`${SCRIPTS[SKEY].name} · Step ${idx+1} of ${STEPS.length}`;
+  document.querySelectorAll("#seg button").forEach(b=>{b.className=b.dataset.s===SKEY?"on":"";b.disabled=idx>0});
+  const idle=!on&&idx===0;
+  $("#pick").style.display=idle?"flex":"none";
+  $("#seg").style.display=(on&&idx===0)?"flex":"none";
+  $("#go").style.display=idle?"none":"inline-block";
+  $("#big").textContent=fin?"All steps complete ✓":STEPS[idx];
+  $("#sub").textContent=fin?"":(on?"Listening… I’ll move on when I hear you complete this step."+(idx===0?" Wrong script? Switch it above before the first step.":""):(idx>0?"Paused. Press Resume listening to continue.":"Pick the script when a call comes in. Listening starts right away."));
+  $("#pb").style.width=(idx/STEPS.length*100)+"%";
+  const c=ol.querySelector(".cur");if(c)ol.scrollTop=Math.max(0,c.offsetTop-ol.clientHeight/3);
+  pipDraw();
+}
+function drawT(){const el=$("#tr");el.textContent=tx;
+  if(interim){const s=document.createElement("span");s.className="i";s.textContent=interim;el.append(s)}
+  el.scrollTop=el.scrollHeight}
+function ui(){const b=$("#go");b.textContent=on?"Stop listening":(idx>0?"Resume listening":"Start listening");b.className=on?"rec":"pri";
+  $("#st").className=on?"status on":"status";$("#stt").textContent=on?"Listening":"Not listening";draw()}
+function beep(){try{if(!AC)return;const o=AC.createOscillator(),g=AC.createGain();o.connect(g);g.connect(AC.destination);o.frequency.value=880;g.gain.value=.08;o.start();o.stop(AC.currentTime+.12)}catch(e){}}
+function popUp(d,n){const p=$("#pop");p.innerHTML="";
+  if(d!=null){const a=document.createElement("div");a.className="pd";a.textContent="✓ "+STEPS[d];p.append(a)}
+  const b=document.createElement("div");b.className="pn";
+  b.textContent=n<STEPS.length?"NEXT → "+STEPS[n]:"All steps complete ✓";
+  p.append(b);p.className="show";clearTimeout(popT);popT=setTimeout(()=>p.className="",7000)}
+function advance(){idx++;since=tx.length;block=true;draw();beep();popUp(idx-1,idx)}
+function heard(){
+  const t=(tx.slice(since)+" "+(block?"":interim)).toLowerCase();
+  const m=t.match(new RegExp(KEYS[idx].source,"g"))||[];
+  return new Set(m.map(x=>x.trim())).size;
+}
+function meter(){
+  if(!on||idx>=STEPS.length)return;
+  $("#sub").textContent=`Listening… heard ${Math.min(heard(),NEED[idx])} of ${NEED[idx]} key point${NEED[idx]>1?"s":""} for this step. I’ll move on after you finish and pause.`;
+}
+function evaluate(){
+  if(!on||idx>=STEPS.length)return;
+  if(heard()>=NEED[idx])advance();
+}
+function pipDraw(){
+  if(!pipW||pipW.closed)return;
+  const a=pipW.document.getElementById("pc"),b=pipW.document.getElementById("pn");if(!a||!b)return;
+  a.textContent=idx<STEPS.length?`Step ${idx+1} of ${STEPS.length}`:"";
+  b.textContent=idx<STEPS.length?"NEXT → "+STEPS[idx]:"All steps complete ✓";
+}
+$("#pip").onclick=async()=>{
+  if(!window.documentPictureInPicture){msg("Pop-out needs a recent Chrome or Edge.");return}
+  try{pipW=await documentPictureInPicture.requestWindow({width:440,height:190});
+    const st=pipW.document.createElement("style");
+    st.textContent="body{margin:0;padding:14px;background:#1a2a6c;color:#fff;font:700 22px/1.3 system-ui,sans-serif}#pc{font:13px system-ui,sans-serif;opacity:.75;margin-bottom:6px}";
+    pipW.document.head.append(st);pipW.document.body.innerHTML='<div id="pc"></div><div id="pn"></div>';pipDraw();
+  }catch(e){msg("Couldn’t open the pop-out window.")}
+};
+$("#nw").onclick=()=>{if(!confirm("Start a new call? This resets the script and clears the transcript."))return;
+  idx=0;tx="";interim="";since=0;block=false;drawT();draw();msg("")};
+$("#dl").onclick=()=>{const u=URL.createObjectURL(new Blob([tx],{type:"text/plain"}));const l=document.createElement("a");
+  l.href=u;l.download="call-transcript.txt";l.click();setTimeout(()=>URL.revokeObjectURL(u),1000)};
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+function startListening(){
+  try{AC=AC||new(window.AudioContext||window.webkitAudioContext)()}catch(e){}
+  if(!SR){msg("This browser can’t do live speech recognition. Please use Chrome or Edge.");return}
+  msg("");rec=new SR();rec.continuous=true;rec.interimResults=true;rec.lang="en-US";
+  rec.onresult=e=>{let p="",fin=false;
+    for(let i=e.resultIndex;i<e.results.length;i++){const r=e.results[i];
+      if(r.isFinal){tx+=r[0].transcript.trim()+"\n";fin=true}else p+=r[0].transcript}
+    interim=p;drawT();if(fin)block=false;meter();clearTimeout(qt);qt=setTimeout(evaluate,SILENCE)};
+  rec.onend=()=>{if(on){try{rec.start()}catch(e){}}};
+  rec.onerror=e=>{if(e.error==="not-allowed"||e.error==="service-not-allowed"){on=false;ui();msg("Microphone access is blocked. Allow it in your browser’s site settings and try again.")}};
+  try{rec.start();on=true;ui();popUp(null,idx)}catch(e){msg("Couldn’t start the microphone.")}
+}
+$("#go").onclick=()=>{if(on){on=false;try{rec.stop()}catch(e){}ui()}else startListening()};
+function setScript(k){if(idx>0||!SCRIPTS[k])return;SKEY=k;STEPS=SCRIPTS[k].steps;KEYS=SCRIPTS[k].keys;NEED=SCRIPTS[k].need;draw()}
+document.querySelectorAll("#seg button").forEach(b=>b.onclick=()=>setScript(b.dataset.s));
+document.querySelectorAll("#pick button").forEach(b=>b.onclick=()=>{setScript(b.dataset.s);startListening()});
+draw();
+</script>
+</body>
+</html>
